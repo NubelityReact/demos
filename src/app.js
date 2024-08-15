@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 const redis = require('redis');
-const path = require('path')
+const path = require('path');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
@@ -31,13 +31,20 @@ app.use(session({
     secret: process.env.SECRET_KEY,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: true }
+    cookie: {
+        secure: process.env.NODE_ENV === 'production' ? true : false,
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60
+    }
 }));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    if (req.session && req.session.user) {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    } else {
+        res.redirect('/login');
+    }
 });
-
 
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'templates/login.html'));
@@ -47,15 +54,13 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
     const user = users.find(u => u.username === username);
-    if (!user) {
+    if (!user || password !== user.password) {
         return res.status(401).redirect('/login?error=true');
     }
 
-    if (password === user.password) {
-        return res.status(200).redirect('/');
-    } else {
-        return res.status(401).redirect('/login?error=true');
-    }
+
+    req.session.user = username;
+    return res.redirect('/');
 });
 
 app.get('/auth', (req, res) => {
