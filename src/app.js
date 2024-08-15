@@ -18,7 +18,7 @@ const users = [
 
 // Initialize Redis client
 const redisClient = redis.createClient({
-    url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`
+    url: `redis://${process.env.REDIS_HOST || 'redis'}:6379`
 });
 
 redisClient.on('error', (err) => {
