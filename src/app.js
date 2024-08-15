@@ -16,14 +16,16 @@ const users = [
     }
 ];
 
+// Initialize Redis client
 const redisClient = redis.createClient({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: 6379
+    url: `redis://${process.env.REDIS_HOST || 'localhost'}:6379`
 });
 
 redisClient.on('error', (err) => {
     console.error('Redis error: ', err);
 });
+
+redisClient.connect().catch(console.error); // Ensure the client connects properly
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -34,7 +36,7 @@ app.use(session({
     cookie: {
         secure: process.env.NODE_ENV === 'production' ? true : false,
         httpOnly: true,
-        maxAge: 1000 * 60 * 60
+        maxAge: 1000 * 60 * 60 // 1 hour
     }
 }));
 
@@ -58,9 +60,14 @@ app.post('/login', (req, res) => {
         return res.status(401).redirect('/login?error=true');
     }
 
-
     req.session.user = username;
     return res.redirect('/');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });
 
 app.get('/auth', (req, res) => {
